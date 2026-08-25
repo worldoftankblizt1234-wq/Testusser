@@ -62,12 +62,28 @@
         .btn-action:active {
             transform: translateY(0);
         }
+        #voter-list-container::-webkit-scrollbar {
+            width: 4px;
+        }
+        #voter-list-container::-webkit-scrollbar-thumb {
+            background-color: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+        }
+        @keyframes slideInUp {
+            from { transform: translateY(100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .toast-enter {
+            animation: slideInUp 0.3s ease-out forwards;
+        }
     </style>
 </head>
 <body class="p-4 sm:p-6 md:p-8">
 
-    <!-- ====== STREAMING_CHUNK: Rendering Setup Room ID screen... ====== -->
-    <!-- MÀN HÌNH KHỞI TẠO PHÒNG -->
+    <!-- ====== TOAST ====== -->
+    <div id="toast-container" class="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50 flex flex-col gap-2"></div>
+
+    <!-- ====== SETUP LOBBY ====== -->
     <div id="setup-lobby-screen" class="min-h-[80vh] flex flex-col items-center justify-center p-4">
         <div class="glass-panel rounded-3xl p-8 max-w-md w-full text-center border border-white/10 relative overflow-hidden">
             <div class="absolute -top-10 -right-10 w-40 h-40 bg-indigo-500/10 rounded-full blur-3xl"></div>
@@ -90,8 +106,7 @@
         </div>
     </div>
 
-    <!-- ====== STREAMING_CHUNK: Building Host Real-time Dashboard... ====== -->
-    <!-- MÀN HÌNH DASHBOARD CỦA HOST -->
+    <!-- ====== HOST DASHBOARD ====== -->
     <div id="host-dashboard" class="hidden max-w-5xl mx-auto">
         <header class="glass-panel text-white p-6 rounded-3xl shadow-lg mb-8 border border-white/10 flex flex-col md:flex-row justify-between items-center gap-4">
             <div>
@@ -112,16 +127,16 @@
         </header>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <!-- CỘT 1: THÔNG TIN BỎ PHIẾU & ĐIỀU CHỈNH CHẶNG CHƠI -->
+            <!-- CỘT TRÁI -->
             <div class="lg:col-span-2 space-y-6">
-                <!-- PANEL CHỈ HUY TIẾN TRÌNH -->
+                <!-- PANEL ĐIỀU KHIỂN -->
                 <div class="glass-panel rounded-3xl p-6 border border-white/10">
                     <h2 class="text-xl font-bold mb-4 flex items-center gap-2 text-emerald-400">
                         <i class="fas fa-sliders-h"></i>
                         <span>BẢNG ĐIỀU PHỐI ĐẤU TRƯỜNG</span>
                     </h2>
 
-                    <!-- TRẠNG THÁI HIỆN TẠI -->
+                    <!-- TRẠNG THÁI -->
                     <div class="bg-black/30 border border-white/5 rounded-2xl p-4 mb-6 flex justify-between items-center flex-wrap gap-4">
                         <div>
                             <span class="text-xs text-gray-400 block uppercase font-semibold">Trạng thái đấu trường</span>
@@ -133,10 +148,8 @@
                         </div>
                     </div>
 
-                    <!-- ====== STREAMING_CHUNK: Rendering action control buttons... ====== -->
-                    <!-- DANH SÁCH NÚT HÀNH ĐỘNG DÀNH CHO HOST -->
+                    <!-- NÚT ĐIỀU KHIỂN -->
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <!-- Nút Bắt đầu bình chọn (Sử dụng để kích hoạt Client) -->
                         <button id="host-btn-start-voting" onclick="startVotingProcess()" class="btn-action bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white font-extrabold py-4 px-6 rounded-2xl flex items-center justify-center gap-2 sm:col-span-2 shadow-lg">
                             <i class="fas fa-play-circle text-xl animate-pulse"></i>
                             <span>⚡ BẮT ĐẦU BÌNH CHỌN (MỞ KHÓA CLIENT)</span>
@@ -159,14 +172,13 @@
                     </div>
                 </div>
 
-                <!-- BIỂU ĐỒ BỎ PHIẾU THỜI GIAN THỰC -->
+                <!-- BIỂU ĐỒ -->
                 <div class="glass-panel rounded-3xl p-6 border border-white/10">
                     <h2 class="text-xl font-bold mb-6 flex items-center gap-2 text-indigo-400">
                         <i class="fas fa-chart-bar"></i>
                         <span>TIẾN ĐỘ BÌNH CHỌN TRỰC TIẾP</span>
                     </h2>
 
-                    <!-- THANH TỶ LỆ TRỰC QUAN -->
                     <div class="w-full bg-white/10 rounded-full h-5 mb-6 overflow-hidden flex shadow-inner">
                         <div id="stock-progress" class="bg-emerald-500 h-full transition-all duration-500 ease-out flex items-center justify-center text-[10px] font-bold" style="width: 50%">Mô Phỏng Chứng Khoán</div>
                         <div id="quiz-progress" class="bg-blue-500 h-full transition-all duration-500 ease-out flex items-center justify-center text-[10px] font-bold" style="width: 50%">Trò Trắc Nghiệm</div>
@@ -189,7 +201,6 @@
                         </div>
                     </div>
 
-                    <!-- THỨ TỰ CHƠI GAME ĐƯỢC XẾP HẠNG -->
                     <div class="bg-indigo-950/20 border border-indigo-500/10 rounded-2xl p-4 mt-6">
                         <h3 class="text-sm font-bold text-indigo-300 uppercase tracking-wider mb-3">Thứ tự chơi liên hoàn dự kiến:</h3>
                         <div class="space-y-2">
@@ -208,7 +219,7 @@
                 </div>
             </div>
 
-            <!-- CỘT 2: QUẢN LÝ THÀNH VIÊN ĐANG ONLINE -->
+            <!-- CỘT PHẢI: DANH SÁCH USER -->
             <div class="glass-panel rounded-3xl p-6 border border-white/10 flex flex-col h-[580px]">
                 <h2 class="text-xl font-bold mb-4 flex items-center justify-between text-teal-400">
                     <span class="flex items-center gap-2">
@@ -230,11 +241,7 @@
         </div>
     </div>
 
-    <!-- KHUNG CHỨA TOAST NOTIFICATION -->
-    <div id="toast-container" class="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50 flex flex-col gap-2"></div>
-
-    <!-- ====== STREAMING_CHUNK: Initializing PeerJS and master state synchronization... ====== -->
-    <script type="module">
+    <script>
         const gameNames = {
             stock_market: 'Mô Phỏng Chứng Khoán 📈',
             quiz: 'Trò Trắc Nghiệm 🧠'
@@ -244,11 +251,10 @@
         let connections = [];
         let roomId = '';
 
-        // Master State đồng bộ dữ liệu tới Client
         let masterState = {
-            players: {}, // { connectionPeerId: { name: '...', vote: '...' } }
+            players: {},
             timer: 30,
-            gameState: 'idle', // 'idle' (chờ kích hoạt) | 'voting' (đang vote) | 'transition' | 'playing'
+            gameState: 'idle',
             activeGame: null,
             firstGame: 'stock_market',
             secondGame: 'quiz',
@@ -257,6 +263,63 @@
 
         let timerInterval = null;
 
+        // ============================================================
+        // TOAST
+        // ============================================================
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            const bgColor = type === 'error' ? 'bg-rose-600' : 'bg-emerald-600';
+            toast.className = `${bgColor} text-white px-6 py-3 rounded-full shadow-lg text-sm font-medium transition-all flex items-center gap-2 toast-enter`;
+            toast.innerHTML = `<i class="fas ${type === 'error' ? 'fa-exclamation-circle' : 'fa-check-circle'}"></i> ${message}`;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // ============================================================
+        // AUDIO
+        // ============================================================
+        function playBeep(frequency = 600, duration = 0.15) {
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+                oscillator.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+                oscillator.type = 'sine';
+                oscillator.frequency.value = frequency;
+                gainNode.gain.setValueAtTime(0.25, audioCtx.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + duration);
+                oscillator.start(audioCtx.currentTime);
+                oscillator.stop(audioCtx.currentTime + duration);
+            } catch (e) {}
+        }
+
+        // ============================================================
+        // CONNECTION UI
+        // ============================================================
+        function updateConnectionUI(status) {
+            const badge = document.getElementById('connection-badge');
+            const dot = document.getElementById('connection-dot');
+            const text = document.getElementById('connection-status-text');
+
+            if (status === 'online') {
+                badge.className = "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-3 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 shadow-md";
+                dot.className = "w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse";
+                text.innerText = "Host Sẵn Sàng (WebRTC)";
+            } else if (status === 'error') {
+                badge.className = "bg-rose-500/20 text-rose-300 border border-rose-500/30 px-3 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 shadow-md";
+                dot.className = "w-2.5 h-2.5 rounded-full bg-rose-500";
+                text.innerText = "Trùng ID / Lỗi phòng";
+            }
+        }
+
+        // ============================================================
+        // START HOSTING
+        // ============================================================
         window.startHosting = function() {
             const rawRoom = document.getElementById('room-input-id').value.trim();
             if (!rawRoom) {
@@ -272,11 +335,44 @@
             initHostPeer();
         };
 
+        // ============================================================
+        // INIT PEERJS WITH METERED TURN
+        // ============================================================
         function initHostPeer() {
             const hostPeerId = `arena-${roomId}-host`;
             
             try {
-                peer = new Peer(hostPeerId, { debug: 1 });
+                // ============================================================
+                // QUAN TRỌNG: PEERJS ĐÃ TÍCH HỢP METERED TURN
+                // ============================================================
+                peer = new Peer(hostPeerId, {
+                    debug: 1,
+                    config: {
+                        iceServers: [
+                            { urls: "stun:stun.relay.metered.ca:80" },
+                            {
+                                urls: "turn:global.relay.metered.ca:80?transport=udp",
+                                username: "8f873d09027ef4d5e1518c6a",
+                                credential: "OUSg9BTY0YNpCcWg"
+                            },
+                            {
+                                urls: "turn:global.relay.metered.ca:80?transport=tcp",
+                                username: "8f873d09027ef4d5e1518c6a",
+                                credential: "OUSg9BTY0YNpCcWg"
+                            },
+                            {
+                                urls: "turn:global.relay.metered.ca:443?transport=tcp",
+                                username: "8f873d09027ef4d5e1518c6a",
+                                credential: "OUSg9BTY0YNpCcWg"
+                            },
+                            {
+                                urls: "turns:global.relay.metered.ca:443?transport=tcp",
+                                username: "8f873d09027ef4d5e1518c6a",
+                                credential: "OUSg9BTY0YNpCcWg"
+                            }
+                        ]
+                    }
+                });
 
                 peer.on('open', (id) => {
                     console.log("Host PeerID Online:", id);
@@ -304,23 +400,9 @@
             }
         }
 
-        /* ====== STREAMING_CHUNK: Managing Host WebRTC communication logic... ====== */
-        function updateConnectionUI(status) {
-            const badge = document.getElementById('connection-badge');
-            const dot = document.getElementById('connection-dot');
-            const text = document.getElementById('connection-status-text');
-
-            if (status === 'online') {
-                badge.className = "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-3 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 shadow-md";
-                dot.className = "w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse";
-                text.innerText = "Host Sẵn Sàng (WebRTC)";
-            } else if (status === 'error') {
-                badge.className = "bg-rose-500/20 text-rose-300 border border-rose-500/30 px-3 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 shadow-md";
-                dot.className = "w-2.5 h-2.5 rounded-full bg-rose-500";
-                text.innerText = "Trùng ID / Lỗi phòng";
-            }
-        }
-
+        // ============================================================
+        // CONNECTION LISTENERS
+        // ============================================================
         function setupConnectionListeners(conn) {
             if (connections.some(c => c.peer === conn.peer)) return;
             connections.push(conn);
@@ -335,7 +417,6 @@
                     calculateStandings();
                     broadcastMasterState();
                 } else if (data.type === 'VOTE') {
-                    // Chỉ nhận vote khi trạng thái là 'voting'
                     if (masterState.gameState !== 'voting') {
                         conn.send({ type: 'VOTE_REJECTED', reason: 'Cuộc bình chọn chưa được kích hoạt hoặc đã kết thúc!' });
                         return;
@@ -361,6 +442,9 @@
             });
         }
 
+        // ============================================================
+        // BROADCAST
+        // ============================================================
         function broadcastMasterState() {
             const payload = {
                 type: 'STATE_UPDATE',
@@ -374,6 +458,9 @@
             renderHostUI();
         }
 
+        // ============================================================
+        // CALCULATE STANDINGS
+        // ============================================================
         function calculateStandings() {
             let stockVotes = 0;
             let quizVotes = 0;
@@ -395,7 +482,9 @@
             }
         }
 
-        /* ====== STREAMING_CHUNK: Updating Host screen rendering states... ====== */
+        // ============================================================
+        // RENDER UI
+        // ============================================================
         function renderHostUI() {
             const timerText = document.getElementById('timer-text');
             const stateText = document.getElementById('current-state-text');
@@ -403,11 +492,9 @@
             const game1Btn = document.getElementById('host-btn-game1');
             const game2Btn = document.getElementById('host-btn-game2');
 
-            // Cập nhật giao diện nút dựa vào trạng thái đấu trường
             if (masterState.gameState === 'idle') {
                 timerText.innerText = "--:--";
                 stateText.innerText = "Chờ Quản trò bấm mở khóa bình chọn...";
-                
                 startBtn.classList.remove('hidden');
                 game1Btn.classList.add('opacity-50', 'pointer-events-none');
                 game2Btn.classList.add('opacity-50', 'pointer-events-none');
@@ -415,21 +502,18 @@
                 const seconds = masterState.timer;
                 timerText.innerText = `00:${seconds < 10 ? '0' : ''}${seconds}`;
                 stateText.innerText = "Đang diễn ra bình chọn trên thiết bị Client...";
-                
                 startBtn.classList.add('hidden');
                 game1Btn.classList.add('opacity-50', 'pointer-events-none');
                 game2Btn.classList.add('opacity-50', 'pointer-events-none');
             } else if (masterState.gameState === 'transition') {
                 timerText.innerText = "00:00";
                 stateText.innerText = "Bình chọn hoàn tất! Sẵn sàng khởi chạy game...";
-                
                 startBtn.classList.add('hidden');
                 game1Btn.classList.remove('opacity-50', 'pointer-events-none');
                 game2Btn.classList.remove('opacity-50', 'pointer-events-none');
             } else if (masterState.gameState === 'playing') {
                 timerText.innerText = "PLAY";
                 stateText.innerText = `Đang chơi: ${gameNames[masterState.activeGame]} (Trò ${masterState.currentGameIndex}/2)`;
-                
                 startBtn.classList.add('hidden');
                 game1Btn.classList.remove('opacity-50', 'pointer-events-none');
                 game2Btn.classList.remove('opacity-50', 'pointer-events-none');
@@ -489,7 +573,9 @@
             document.getElementById('expected-second-game').innerText = gameNames[masterState.secondGame];
         }
 
-        /* ====== STREAMING_CHUNK: Handling active timer flow and game launching... ====== */
+        // ============================================================
+        // START VOTING
+        // ============================================================
         window.startVotingProcess = function() {
             if (connections.length === 0) {
                 showToast("Chưa có người chơi nào tham gia phòng để bắt đầu!", "error");
@@ -498,7 +584,6 @@
             masterState.gameState = 'voting';
             masterState.timer = 30;
 
-            // Làm mới các phiếu bầu
             Object.keys(masterState.players).forEach(id => {
                 masterState.players[id].vote = '';
             });
@@ -509,38 +594,34 @@
             showToast("Đã mở khóa bình chọn trên các thiết bị Client!", "success");
         };
 
+        // ============================================================
+        // TIMER
+        // ============================================================
         function startLobbyTimer() {
             if (timerInterval) clearInterval(timerInterval);
             timerInterval = setInterval(() => {
                 if (masterState.gameState === 'voting' && masterState.timer > 0) {
                     masterState.timer--;
                     broadcastMasterState();
+                    if (masterState.timer <= 5) {
+                        playBeep(masterState.timer === 1 ? 880 : 600, 0.12);
+                    }
                 } else if (masterState.gameState === 'voting' && masterState.timer === 0) {
                     masterState.gameState = 'transition';
                     clearInterval(timerInterval);
                     broadcastMasterState();
+                    showToast("⏰ Hết giờ bình chọn! Đang chuyển sang kết quả...", "success");
+                    // Tự động kích hoạt game 1 sau 2 giây
+                    setTimeout(() => {
+                        triggerGameStage(1);
+                    }, 2000);
                 }
             }, 1000);
         }
 
-        window.resetLobbyTimer = function() {
-            if (timerInterval) clearInterval(timerInterval);
-            
-            masterState.gameState = 'idle';
-            masterState.timer = 30;
-            masterState.activeGame = null;
-            masterState.currentGameIndex = 1;
-            
-            // Xóa lượt vote cũ
-            Object.keys(masterState.players).forEach(id => {
-                masterState.players[id].vote = '';
-            });
-
-            calculateStandings();
-            broadcastMasterState();
-            showToast("Đã đưa đấu trường về trạng thái chuẩn bị!", "success");
-        };
-
+        // ============================================================
+        // TRIGGER GAME
+        // ============================================================
         window.triggerGameStage = function(index) {
             masterState.gameState = 'playing';
             masterState.currentGameIndex = index;
@@ -550,36 +631,28 @@
             showToast(`Khởi động thành công: ${gameNames[masterState.activeGame]}!`, "success");
         };
 
-        // SYSTEM TOAST
-        function showToast(message, type = 'success') {
-            const container = document.getElementById('toast-container');
-            const toast = document.createElement('div');
-            const bgColor = type === 'error' ? 'bg-rose-600' : 'bg-emerald-600';
-            toast.className = `${bgColor} text-white px-6 py-3 rounded-full shadow-lg text-sm font-medium transition-all flex items-center gap-2`;
-            toast.innerHTML = `<i class="fas ${type === 'error' ? 'fa-exclamation-circle' : 'fa-check-circle'}"></i> ${message}`;
-            container.appendChild(toast);
-            setTimeout(() => {
-                toast.style.opacity = '0';
-                setTimeout(() => toast.remove(), 300);
-            }, 3000);
-        }
+        // ============================================================
+        // RESET
+        // ============================================================
+        window.resetLobbyTimer = function() {
+            if (timerInterval) clearInterval(timerInterval);
+            
+            masterState.gameState = 'idle';
+            masterState.timer = 30;
+            masterState.activeGame = null;
+            masterState.currentGameIndex = 1;
+            
+            Object.keys(masterState.players).forEach(id => {
+                masterState.players[id].vote = '';
+            });
 
-        // AUDIO SYSTEM
-        function playBeep(frequency = 600, duration = 0.15) {
-            try {
-                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                const oscillator = audioCtx.createOscillator();
-                const gainNode = audioCtx.createGain();
-                oscillator.connect(gainNode);
-                gainNode.connect(audioCtx.destination);
-                oscillator.type = 'sine';
-                oscillator.frequency.value = frequency;
-                gainNode.gain.setValueAtTime(0.25, audioCtx.currentTime);
-                gainNode.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + duration);
-                oscillator.start(audioCtx.currentTime);
-                oscillator.stop(audioCtx.currentTime + duration);
-            } catch (e) {}
-        }
+            calculateStandings();
+            broadcastMasterState();
+            showToast("Đã đưa đấu trường về trạng thái chuẩn bị!", "success");
+        };
+
+        console.log('🎤 Host Dashboard đã sẵn sàng!');
+        console.log('📦 PeerJS với Metered TURN đã được cấu hình!');
     </script>
 </body>
 </html>
