@@ -62,6 +62,16 @@
         .btn-action:active {
             transform: translateY(0);
         }
+        .btn-waiting {
+            background: rgba(251, 191, 36, 0.2);
+            border: 1px solid rgba(251, 191, 36, 0.3);
+            color: #fbbf24;
+            animation: pulse-amber 2s ease-in-out infinite;
+        }
+        @keyframes pulse-amber {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
         #voter-list-container::-webkit-scrollbar {
             width: 4px;
         }
@@ -157,13 +167,20 @@
 
                         <button id="host-btn-game1" onclick="triggerGameStage(1)" class="btn-action bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3.5 px-6 rounded-2xl flex items-center justify-center gap-2 transition-all opacity-50 pointer-events-none">
                             <i class="fas fa-play"></i>
-                            <span>Kích hoạt Trò chơi 1</span>
+                            <span>🎮 Kích hoạt Trò chơi 1</span>
                         </button>
                         
                         <button id="host-btn-game2" onclick="triggerGameStage(2)" class="btn-action bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3.5 px-6 rounded-2xl flex items-center justify-center gap-2 transition-all opacity-50 pointer-events-none">
                             <i class="fas fa-forward"></i>
                             <span>⏩ CHUYỂN SANG TRÒ 2</span>
                         </button>
+                        
+                        <!-- ===== TRẠNG THÁI CHỜ HOST ===== -->
+                        <div id="host-waiting-status" class="hidden sm:col-span-2 mt-2 p-3 rounded-xl btn-waiting flex items-center justify-center gap-3">
+                            <i class="fas fa-hourglass-half text-amber-400 text-lg"></i>
+                            <span class="text-sm font-bold">🟡 ĐANG CHỜ QUẢN TRÒ KÍCH HOẠT</span>
+                            <span class="text-xs text-amber-300/70">(Client đang chờ bạn bấm nút)</span>
+                        </div>
                         
                         <button onclick="resetLobbyTimer()" class="btn-action bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold py-3 px-6 rounded-xl text-sm flex items-center justify-center gap-1.5 sm:col-span-2 mt-2">
                             <i class="fas fa-sync-alt"></i>
@@ -342,9 +359,6 @@
             const hostPeerId = `arena-${roomId}-host`;
             
             try {
-                // ============================================================
-                // QUAN TRỌNG: PEERJS ĐÃ TÍCH HỢP METERED TURN
-                // ============================================================
                 peer = new Peer(hostPeerId, {
                     debug: 1,
                     config: {
@@ -491,6 +505,7 @@
             const startBtn = document.getElementById('host-btn-start-voting');
             const game1Btn = document.getElementById('host-btn-game1');
             const game2Btn = document.getElementById('host-btn-game2');
+            const waitingStatus = document.getElementById('host-waiting-status');
 
             if (masterState.gameState === 'idle') {
                 timerText.innerText = "--:--";
@@ -498,6 +513,8 @@
                 startBtn.classList.remove('hidden');
                 game1Btn.classList.add('opacity-50', 'pointer-events-none');
                 game2Btn.classList.add('opacity-50', 'pointer-events-none');
+                waitingStatus.classList.add('hidden');
+                
             } else if (masterState.gameState === 'voting') {
                 const seconds = masterState.timer;
                 timerText.innerText = `00:${seconds < 10 ? '0' : ''}${seconds}`;
@@ -505,18 +522,26 @@
                 startBtn.classList.add('hidden');
                 game1Btn.classList.add('opacity-50', 'pointer-events-none');
                 game2Btn.classList.add('opacity-50', 'pointer-events-none');
+                waitingStatus.classList.add('hidden');
+                
             } else if (masterState.gameState === 'transition') {
                 timerText.innerText = "00:00";
-                stateText.innerText = "Bình chọn hoàn tất! Sẵn sàng khởi chạy game...";
+                // ===== HIỂN THỊ TRẠNG THÁI CHỜ =====
+                stateText.innerText = "⏳ Đang chờ Quản trò kích hoạt trò chơi!";
+                stateText.className = "text-lg font-black text-amber-400 animate-pulse";
                 startBtn.classList.add('hidden');
                 game1Btn.classList.remove('opacity-50', 'pointer-events-none');
                 game2Btn.classList.remove('opacity-50', 'pointer-events-none');
+                waitingStatus.classList.remove('hidden');
+                
             } else if (masterState.gameState === 'playing') {
                 timerText.innerText = "PLAY";
-                stateText.innerText = `Đang chơi: ${gameNames[masterState.activeGame]} (Trò ${masterState.currentGameIndex}/2)`;
+                stateText.innerText = `🎮 Đang chơi: ${gameNames[masterState.activeGame]} (Trò ${masterState.currentGameIndex}/2)`;
+                stateText.className = "text-lg font-black text-emerald-400";
                 startBtn.classList.add('hidden');
                 game1Btn.classList.remove('opacity-50', 'pointer-events-none');
                 game2Btn.classList.remove('opacity-50', 'pointer-events-none');
+                waitingStatus.classList.add('hidden');
             }
 
             // Render danh sách User
@@ -610,11 +635,7 @@
                     masterState.gameState = 'transition';
                     clearInterval(timerInterval);
                     broadcastMasterState();
-                    showToast("⏰ Hết giờ bình chọn! Đang chuyển sang kết quả...", "success");
-                    // Tự động kích hoạt game 1 sau 2 giây
-                    setTimeout(() => {
-                        triggerGameStage(1);
-                    }, 2000);
+                    showToast("⏰ Hết giờ bình chọn! Đang chờ bạn kích hoạt trò chơi...", "success");
                 }
             }, 1000);
         }
@@ -623,12 +644,21 @@
         // TRIGGER GAME
         // ============================================================
         window.triggerGameStage = function(index) {
+            if (masterState.gameState !== 'transition' && masterState.gameState !== 'playing') {
+                showToast("⚠️ Chưa đến lúc kích hoạt trò chơi! Hãy bắt đầu bình chọn trước.", "error");
+                return;
+            }
+            if (connections.length === 0) {
+                showToast("Chưa có người chơi nào!", "error");
+                return;
+            }
+            
             masterState.gameState = 'playing';
             masterState.currentGameIndex = index;
             masterState.activeGame = index === 1 ? masterState.firstGame : masterState.secondGame;
             
             broadcastMasterState();
-            showToast(`Khởi động thành công: ${gameNames[masterState.activeGame]}!`, "success");
+            showToast(`🎮 Khởi động thành công: ${gameNames[masterState.activeGame]}!`, "success");
         };
 
         // ============================================================
